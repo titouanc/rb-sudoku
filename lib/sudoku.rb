@@ -1,6 +1,6 @@
-require "#{File.dirname __FILE__}/sudokucore"
-
 module Sudoku
+  class MalformedSutxtError < Exception; end
+  
   #Common tasks
   module Grid
     #returns content of column +x+ as an Array
@@ -86,84 +86,61 @@ module Sudoku
       res
     end
     
+    def inspect
+      "#<#{self.class} #{size}x#{size} #{get 0, 0},#{get 0, 1}, ... , #{get size-2, size-1}, #{get size-1, size-1}>"
+    end
+    
     #Store representation of Sudoku
-    def to_sutxt version=2
+    def to_sutxt
       res = "#{base}:"
       size.times do |y|
         size.times do |x|
           res << " #{get x, y}"
         end
       end
-      (version < 2) ? res : res+';'
+      res+';'
     end
   end
-  
-  #Generic adapter
-  class Sn
-    include Grid
-    attr_reader :size
-    
-    def initialize n=3
-      @base   = n.to_i
-      @size   = @base*@base
-      @length = @size*@size
-      @grid = Array.new(@size) do |i|
-        Array.new(@size){|j| 0}
-      end
-    end
-    
-    def set x, y, val
-      @grid[x][y] = val
-    end
-    
-    def get x, y
-      @grid[x][y]
-    end
-    
-    def each
-      @size.times do |y|
-        @size.times do |x|
-          yield x, y, @grid[x][y]
-        end
-      end
-    end
-  end
-  
-  #Highly optimized 9x9 Sudoku
-  class S3
-    include Grid
-    
-    def size
-      SIZE
-    end
-  end
-  
-  #Optimized [4,15]x[4,15] Sudoku
-  class S4_15
-    include Grid
-    private :size_internal
-    
-    def size
-      if @size
-        @size
+end
+
+require 'sudoku/sn'
+require 'sudoku/s4_15'
+require 'sudoku/s3'
+
+module Sudoku
+  class << self
+    #returns best Sudoku implementation for base +n+
+    def best_grid_for n
+      n = n.to_i
+      case n
+      when 3
+        S3.new
+      when 4..15
+        S4_15.new n
       else
-        @size = size_internal
+        Sn.new n
       end
     end
+    
+    alias :[] :best_grid_for
   end
   
-  ADAPTERS = [S3, S4_15, Sn]
-  
-  #returns best Sudoku implementation for base +n+
-  def self.[] n
-    n = n.to_i
-    case n
-    when 3
-      S3.new
-    when 4..15
-      S4_15.new n
-    else
-      Sn.new n
+  def self.parse str
+    unless str =~ /(\d+):(.+);/
+      raise MalformedSutxtError, "It doesn't seem to be a sutxt line..."
     end
+    
+    base = $1.to_i
+    data = $2.split(/\s+/).delete_if(&:empty?).map(&:to_i)
+    unless data.length == base**4
+      raise MalformedSutxtError, "Expecting #{base**4} numbers, #{data.length} given"
+    end
+
+    res = self.best_grid_for base
+    res.each do |x, y, val|
+      res.set x, y, data[x+y*res.size]
+    end
+
+    return res
   end
 end

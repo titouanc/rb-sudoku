@@ -55,6 +55,21 @@ module GridTest
     assert s.valid?(1,1,3)
     assert s.valid?(1,1,4)
   end
+
+  def test_sutxt
+    sutxt = "#{base}:"
+    size = base*base
+    size.times do |y|
+      size.times {|x| sutxt << " #{x+1}"}
+    end
+    sutxt += ';'
+    
+    s = Sudoku.parse(sutxt)
+    assert_equal sutxt, s.to_sutxt
+    assert_equal 1, s.get(0,0)
+    assert_equal 1, s.get(0,1)
+    assert_equal 2, s.get(1,0)
+  end
 end
 
 class S3Test < Test::Unit::TestCase
@@ -62,8 +77,6 @@ class S3Test < Test::Unit::TestCase
   def base; 3; end
   def klass; Sudoku::S3; end
   def create; klass.new; end
-  
-  
 end
 
 class S4_15Test < Test::Unit::TestCase
