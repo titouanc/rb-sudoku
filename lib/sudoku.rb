@@ -1,4 +1,4 @@
-require "#{File.dirname __FILE__}/ext/sudoku"
+require "#{File.dirname __FILE__}/sudokucore"
 
 module Sudoku
   #Common tasks
@@ -24,19 +24,32 @@ module Sudoku
     end
     
     #returns content of square enclosing +xx+,+yy+ as an Array
-    def square xx, yy
-      xmin = xx/base
-      ymin = yy/base
+    def square x, y
+      xmin = x/base
+      ymin = y/base
       res = []
       
-      base.times do |x|
-        base.times do |y|
-          val = get x+xmin, y+ymin
+      base.times do |xx|
+        base.times do |yy|
+          val = get xx+xmin, yy+ymin
           res << val if val != 0
         end
       end
       
       res
+    end
+    
+    def possibilities x, y
+      Array.new(size){|i| i+1} - (col(x) | row(y) | square(x,y))
+    end
+    
+    def valid? x, y, val
+      val = val.to_i
+      return false unless val>0 && val<=size
+      return false if col(x).include? val
+      return false if row(y).include? val
+      return false if square(x, y).include? val
+      true
     end
     
     #returns sudoku base (little square size)
@@ -138,6 +151,8 @@ module Sudoku
       end
     end
   end
+  
+  ADAPTERS = [S3, S4_15, Sn]
   
   #returns best Sudoku implementation for base +n+
   def self.[] n

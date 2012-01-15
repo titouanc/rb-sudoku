@@ -12,7 +12,7 @@ typedef struct {
   unsigned char *ptr;
 } S4_15;
 
-static VALUE S4_15_dealloc(S4_15 *obj){
+static void S4_15_dealloc(S4_15 *obj){
   free(obj->ptr);
   free(obj);
 }
@@ -22,7 +22,7 @@ static VALUE S4_15_alloc(VALUE klass){
   if (! ptr)
     rb_raise(rb_eNoMemError, "Cannot allocate Sudoku 4_15 struct (%lu bytes)", sizeof(S4_15));
   ptr->size = 0;
-  return Data_Wrap_Struct(klass, 0, free, ptr);
+  return Data_Wrap_Struct(klass, 0, S4_15_dealloc, ptr);
 }
 
 static VALUE S4_15_init(VALUE self, VALUE size){
@@ -55,11 +55,16 @@ static VALUE S4_15_init(VALUE self, VALUE size){
 
 static VALUE S4_15_initCopy(VALUE copy, VALUE orig){
   S4_15 *this, *parent;
+  int len;
   
   Data_Get_Struct(copy, S4_15, this);
   Data_Get_Struct(orig, S4_15, parent);
   
   this->size = parent->size;
+  len = this->size*this->size;
+  this->ptr  = malloc(len*sizeof(char));
+  if (! this->ptr)
+    rb_raise(rb_eNoMemError, "Cannot allocate Sudoku data (%d bytes)", len);
   memcpy(this->ptr, parent->ptr, parent->size*sizeof(char));
   
   return copy;
@@ -129,6 +134,10 @@ static void Init_S4_15(VALUE module){
 }
 
 /* ############################################ */
+
+static void S3_dealloc(void *ptr){
+  free(ptr);
+}
 
 static VALUE S3_alloc(VALUE klass){
   char *ptr = malloc(41*sizeof(char));
@@ -238,7 +247,7 @@ static void Init_S3(VALUE module){
 
 /* ############################################ */
 
-void Init_sudoku(){
+void Init_sudokucore(){
   module_Sudoku = rb_define_module("Sudoku");
   Init_S3(module_Sudoku);
   Init_S4_15(module_Sudoku);
