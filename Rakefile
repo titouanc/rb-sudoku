@@ -32,9 +32,14 @@ Rake::TestTask.new do |t|
   t.verbose = true
 end
 
-desc "Install with bundled gem"
-task :install => FileList['pkg/sudoku'] do |t|
-  
+desc "Build gem & install"
+task :install => FileList["pkg/#{spec.full_name}.gem"] do |t|
+  sh "gem install #{t.prerequisites.first}"
+end
+
+desc "Uninstall sudoku gem"
+task :uninstall do |t|
+  sh "gem uninstall #{spec.name}"
 end
 
 task :default => [:repackage, :compile, :test]
