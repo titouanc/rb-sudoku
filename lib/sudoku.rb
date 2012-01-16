@@ -159,13 +159,15 @@ module Sudoku
     #Représentation texte humainement lisible
     def to_s
       res  = ""
-      zero = ".".center size.to_s.length+1
+      width = size.to_s.length
+      zero = ".".center width+1
+      
       size.times do |y|
         res += "\n" if y>0 && y%base == 0
         size.times do |x|
           res += " " if x>0 && x%base == 0
           val = get x, y
-          res += val.zero? ? zero : "#{val} "
+          res += val.zero? ? zero : "#{val.to_s.center width} "
         end
         res += "\n"
       end
@@ -255,22 +257,36 @@ module Sudoku
     end
   end
   
+  ADAPTERS = [
+    [3, S3],
+    [4..15, S4_15],
+    [0, Sn]
+  ]
+  
   class << self
     #Renvoie la classe de la meilleure implémentation pour un sudoku de base n
     def [] n
       n = n.to_i
-      case n
-      when 3
-        S3
-      when 4..15
-        S4_15
-      else
-        Sn
+      ADAPTERS.each do |ad|
+        zone    = ad[0]
+        adapter = ad[1]
+        
+        return adapter if zone == 0
+        
+        case n
+        when zone 
+          return adapter
+        end
       end
     end
     
+    #Ajoute un element 
+    def []= zone, adapter
+      ADAPTERS.unshift [zone, adapter]
+    end
+    
     #Renvoie une instance de la meilleure implémentation pour un sudoku de base n
-    def best_grid_for n
+    def best_grid_for n=3
       n = n.to_i
       self[n].new n
     end
