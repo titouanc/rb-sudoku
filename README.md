@@ -42,4 +42,10 @@ Le Sudoku "classique" (9x9) est optimisé au maximum en temps et en mémoire (41
      => false 
     ruby-1.9.2-p290 :008 > s.valid? 1, 0, 5
      => true 
+		ruby-1.9.2-p290 :009 > s.col 2
+		 => [3] 
+		ruby-1.9.2-p290 :010 > s.row 3
+		 => [4] 
+		ruby-1.9.2-p290 :011 > s.square 3,3
+		 => [4, 5, 6]
 
