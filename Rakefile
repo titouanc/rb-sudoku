@@ -1,8 +1,12 @@
 require 'rubygems'
 require 'rake/gempackagetask'
-require 'rake/extensiontask'
+begin
+  require 'rake/extensiontask'
+rescue LoadError => e
+  sh "gem install rake-compiler"
+  require 'rake/extensiontask'
+end
 require 'rake/testtask.rb'
-require 'yard'
 require './lib/sudoku/version'
 
 spec = Gem::Specification.new do |s|
@@ -38,9 +42,14 @@ Rake::TestTask.new do |t|
   t.verbose = true
 end
 
-YARD::Rake::YardocTask.new do |t|
-  t.files = FileList["lib/sudoku.rb", "lib/sudoku/*.rb"]
-  t.options = ['--readme', 'README.md', '--charset', 'UTF-8']
+begin
+  require 'yard'
+  YARD::Rake::YardocTask.new do |t|
+    t.files = FileList["lib/sudoku.rb", "lib/sudoku/*.rb"]
+    t.options = ['--readme', 'README.md', '--charset', 'UTF-8']
+  end
+rescue LoadError => e
+  puts "No doc task (YARD required)"
 end
 
 desc "Build gem & install"
