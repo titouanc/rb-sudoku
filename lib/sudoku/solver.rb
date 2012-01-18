@@ -49,76 +49,70 @@ module Sudoku
     # @param [Fixnum] x La colonne à traiter
     # @return [Fixnum] le nombre de nombres ajoutés
     def solve_col! x
-      res = 0
-      missing = missing_col x
-      loop do
-        adds = 0
+      adds = 0
+      
+      missing_col(x).each do |val|
+        pos = []
         size.times do |y|
-          next unless get(x,y).zero?
-          plausible = possibilities(x,y) & missing
-          if plausible.length == 1
-            set x, y, plausible.first
-            missing.delete plausible.first
-            adds += 1
-          end
+          next unless get(x,y) == 0
+          pos << [x,y] if valid? x, y, val
         end
-        break if adds.zero?
-        res += adds
+        if pos.length == 1
+          set pos[0][0], pos[0][1], val
+          adds += 1
+        end
       end
-      res
+      
+      adds
     end
     
     #Ajoute un nombre chaque fois que c'est la seule position possible dans la ligne
     # @param [Fixnum] y La ligne à traiter
     # @return [Fixnum] le nombre de nombres ajoutés
     def solve_row! y
-      res = 0
-      missing = missing_row y
-      loop do
-        adds = 0
+      adds = 0
+      
+      missing_row(y).each do |val|
+        pos = []
         size.times do |x|
-          next unless get(x,y).zero?
-          plausible = possibilities(x,y) & missing
-          if plausible.length == 1
-            set x, y, plausible.first
-            missing.delete plausible.first
-            adds += 1
-          end
+          next unless get(x,y) == 0
+          pos << [x,y] if valid? x, y, val
         end
-        break if adds.zero?
-        res += adds
+        if pos.length == 1
+          set pos[0][0], pos[0][1], val
+          adds += 1
+        end
       end
-      res
+      
+      adds
     end
     
     #Ajoute un nombre chaque fois que c'est la seule position possible dans le carré
     # @param [Fixnum] x La colonne d'une case du carré à traiter
     # @param [Fixnum] y La rangée d'une case du carré à traiter
     # @return [Fixnum] le nombre de nombres ajoutés
-    def solve_square! x, y
-      res = 0
-      xmin = x - (x%base)
-      ymin = y - (y%base)
-      missing = missing_square x, y
-      loop do
-        adds = 0
-        base.times do |xxx|
-          base.times do |yyy|
-            xx = xxx+xmin
-            yy = yyy+ymin
-            next unless get(xx, yy).zero?
-            plausible = possibilities(xx, yy) & missing
-            if plausible.length == 1
-              set xx, yy, plausible.first
-              missing.delete plausible.first
-              adds += 1
-            end
+    def solve_square! xx, yy
+      xmin = xx - (xx%base)
+      ymin = yy - (yy%base)
+      adds = 0
+      
+      missing_square(xx, yy).each do |val|
+        pos = []
+        base.times do |i|
+          base.times do |j|
+            x = xmin + i
+            y = ymin + j
+            next unless get(x,y) == 0
+            pos << [x,y] if valid? x, y, val
           end
         end
-        break if adds.zero?
-        res += adds
+        if pos.length == 1
+          set pos[0][0], pos[0][1], val
+          adds += 1
+        end
       end
-      res
+      
+      adds
     end
     
     #Utilise solve_uniq_possibilities!, solve_col!, solve_row! et solve_square!
@@ -147,7 +141,7 @@ module Sudoku
     #Resoud le sudoku par backtracking
     # @return (Fixnum) le nombre de nombres ajoutés dans la grille
     def solve_backtrack!
-      res = solve_uniq_possibilities!
+      res = solve_naive!
       
       each do |x, y, cur_val|
         next unless cur_val.zero?

@@ -138,6 +138,8 @@ module GeneratorTest
 end
 
 module SolverTest
+  SOLVER_TIMEOUT = 10 #sec
+  
   def test_missing
     s = create
     s.set 0,1,1
@@ -160,6 +162,13 @@ module SolverTest
     
     assert_equal 2, s.solve_uniq_possibilities!, "Solution par possibilites uniques d'un sudoku complet-2cases"
     assert s.complete?
+  end
+
+  def test_solve_backtrack
+    s = create.make_valid_incomplete
+    t = Thread.new(s){|sudoku| sudoku.solve_backtrack!}
+    t.join SOLVER_TIMEOUT
+    assert s.complete?, "Toujours une solution en backtracking en max. #{SOLVER_TIMEOUT}s"
   end
 end
 
