@@ -3,3 +3,6 @@ tmp
 ._*
 .DS_Store
 *.bundle
+doc
+.yardoc
+.rbx

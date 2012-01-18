@@ -74,13 +74,17 @@ static VALUE S4_15_initCopy(VALUE copy, VALUE orig){
   S4_15 *this, *parent;
   int len;
   
+  if (copy == orig)
+    return copy;
+  
   Data_Get_Struct(copy, S4_15, this);
   Data_Get_Struct(orig, S4_15, parent);
   
   this->size = parent->size;
+  len = this->size * this->size;
   
   S4_15_alloc_data(this);
-  memcpy(this->ptr, parent->ptr, parent->size*sizeof(char));
+  memcpy(this->ptr, parent->ptr, len*sizeof(char));
   
   return copy;
 }
@@ -94,7 +98,7 @@ static VALUE S4_15_get(VALUE self, VALUE col, VALUE row){
   if (x<0 || x>=this->size || y<0 || y>=this->size)
     rb_raise(rb_eArgError, "Are you sure thre's a %d,%d cell in a %dx%d Sudoku ?", x, y, this->size, this->size);
     
-  return INT2NUM(this->ptr[x+y*this->size]);
+  return INT2FIX(this->ptr[x+y*this->size]);
 }
 
 static VALUE S4_15_set(VALUE self, VALUE col, VALUE row, VALUE value){
@@ -150,6 +154,9 @@ static void Init_S4_15(VALUE module){
 
 /* ############################################ */
 
+#define S3_offset(x, y) ((size_t) (x)+((y)*9))
+#define S3_valAtOffset(ptr, i) (((i)%2 == 0) ? (((ptr)[(i)/2] >> 4) & 0x0f) : ((ptr)[(i)/2] & 0x0f))
+
 static void S3_dealloc(void *ptr){
   free(ptr);
 }
@@ -179,6 +186,9 @@ static VALUE S3_initCopy(VALUE copy, VALUE orig){
   unsigned char *this, *parent;
   char i;
   
+  if (copy == orig)
+    return copy;
+  
   Data_Get_Struct(copy, unsigned char, this);
   Data_Get_Struct(orig, unsigned char, parent);
   if (this == parent)
@@ -190,7 +200,7 @@ static VALUE S3_initCopy(VALUE copy, VALUE orig){
 }
 
 static VALUE S3_get(VALUE self, VALUE col, VALUE row){
-  unsigned char *this, x, y, i;
+  unsigned char *this, x, y;
   
   Data_Get_Struct(self, unsigned char, this);
   x = NUM2UINT(col)&0xff;
@@ -199,11 +209,7 @@ static VALUE S3_get(VALUE self, VALUE col, VALUE row){
   if (x>=9 || y>=9)
     rb_raise(rb_eArgError, "Are you sure thre's a %d,%d cell in a 9x9 Sudoku ?", x, y);
   
-  i = x + y*9;  
-  if (i%2 == 0)
-    return INT2FIX((this[i/2] >> 4) & 0x0f);
-  else
-    return INT2FIX(this[i/2] & 0x0f);
+  return INT2FIX(S3_valAtOffset(this, S3_offset(x, y)));
 }
 
 static VALUE S3_set(VALUE self, VALUE col, VALUE row, VALUE value){
@@ -218,7 +224,7 @@ static VALUE S3_set(VALUE self, VALUE col, VALUE row, VALUE value){
   if (x>=9 || y>=9 || val > 9)
     rb_raise(rb_eArgError, "%d,%d => %d not allowed in a 9x9 Sudoku", x, y, val);
     
-  i = x + y*9;
+  i = S3_offset(x, y);
   if (i%2 == 0)
     this[i/2] = (this[i/2]&0x0f) | (val<<4);
   else
@@ -248,6 +254,48 @@ static VALUE S3_each(VALUE self){
   return self;
 }
 
+static VALUE S3_column(VALUE self, VALUE col){
+  unsigned char x = NUM2UINT(col)&0xff, y, val;
+  unsigned char i = x;
+  VALUE res;
+  unsigned char *this;
+  
+  if (x>=9)
+    rb_raise(rb_eArgError, "Are you sure thre's a %d column in a 9x9 Sudoku ?", x);
+  
+  Data_Get_Struct(self, unsigned char, this);
+  res = rb_ary_new();
+  for (y=0; y<9; y++){
+    val = S3_valAtOffset(this, i);
+    if (val != 0)
+      rb_ary_push(res, INT2FIX(val));
+    i += 9;
+  }
+  
+  return res;
+}
+
+static VALUE S3_line(VALUE self, VALUE row){
+  unsigned char y = NUM2UINT(row)&0xff, x, val;
+  unsigned char i = 9*y;
+  VALUE res;
+  unsigned char *this;
+  
+  if (y>=9)
+    rb_raise(rb_eArgError, "Are you sure thre's a %d row in a 9x9 Sudoku ?", y);
+  
+  Data_Get_Struct(self, unsigned char, this);
+  res = rb_ary_new();
+  for (x=0; x<9; x++){
+    val = S3_valAtOffset(this, i);
+    if (val != 0)
+      rb_ary_push(res, INT2FIX(val));
+    i ++;
+  }
+  
+  return res;
+}
+
 static VALUE S3_isComplete(VALUE self){
   char i, val;
   unsigned char *this;
@@ -256,6 +304,31 @@ static VALUE S3_isComplete(VALUE self){
   for (i=0; i<41; i++)
     if ((this[i]&0xf0) == 0 || (this[i]&0x0f) == 0)
       return Qfalse;
+  
+  return Qtrue;
+}
+
+static VALUE S3_isValidCell(VALUE self, VALUE col, VALUE row, VALUE val){
+  unsigned char x = NUM2UINT(col)&0xff, xx;
+  unsigned char y = NUM2UINT(row)&0xff, yy;
+  unsigned char v = NUM2UINT(val)&0xff;
+  unsigned char     i;
+  unsigned char *this;
+  
+  if (x>=9 || y>=9 || v>9)
+    rb_raise(rb_eArgError, "%d,%d => %d not allowed in a 9x9 Sudoku", x, y, v);
+  
+  if (v==0)
+    return Qtrue;
+  
+  Data_Get_Struct(self, unsigned char, this);
+  for (i=0; i<9; i++){
+    if (S3_valAtOffset(this, S3_offset(x, i)) == v && i != y) return Qfalse;
+    if (S3_valAtOffset(this, S3_offset(i, y)) == v && i != x) return Qfalse;
+    xx = 3*(x/3) + (i%3);
+    yy = 3*(y/3) + (i/3);
+    if (S3_valAtOffset(this, S3_offset(xx, yy))==v && xx!=x && yy!=y) return Qfalse;
+  }
   
   return Qtrue;
 }
@@ -283,8 +356,11 @@ static void Init_S3(VALUE module){
     rb_define_method(class_S3, "get", S3_get, 2);
     rb_define_method(class_S3, "set", S3_set, 3);
     rb_define_method(class_S3, "each", S3_each, 0);
+    rb_define_method(class_S3, "col", S3_column, 1);
+    rb_define_method(class_S3, "row", S3_line, 1);
     rb_define_method(class_S3, "complete?", S3_isComplete, 0);
     rb_define_method(class_S3, "dump", S3_dump, 0);
+    rb_define_method(class_S3, "valid_cell?", S3_isValidCell, 3);
 }
 
 /* ############################################ */
