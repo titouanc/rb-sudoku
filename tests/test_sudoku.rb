@@ -1,6 +1,21 @@
 require 'test/unit'
 require 'sudoku'
 
+class MyTestCase < Test::Unit::TestCase
+  #Certains Rubys n'ont pas refute...
+  def refute what, *args
+    begin
+      return super(what, *args)
+    rescue NoMethodError => e
+      return assert(!what, args)
+    end
+  end
+  
+  def test_myrefute
+    refute false, "Implementation refute"
+  end
+end
+
 module GridTest
   def create
     klass.new base
@@ -87,7 +102,7 @@ module GridTest
     sutxt = "#{base}:"
     size = base*base
     size.times do |y|
-      size.times {|x| sutxt << " #{x+1}"}
+      size.times {|x| sutxt += " #{x+1}"}
     end
     sutxt += ';'
     
@@ -120,6 +135,17 @@ module GridTest
     assert_equal expected, s.count, "Comptage de valeurs dans un sudoku diagonal"
     
     assert_raise(ArgumentError, "Comptage de valeur > size impossible"){s.count(s.size+1)}
+  end
+
+  def test_import
+    s  = create.make_valid
+    s2 = Sudoku::Sn.new(s.size)
+    s2.each do |x,y,v|
+      assert_equal s.get(x,y), v, "Importation d'une grille vers grille generique, cellules egales"
+    end
+    
+    s3 = Sudoku::Sn.new(s.size+1)
+    assert_raise(Sudoku::NotCompatibleError, "Importation d'une grille vers grille de taille differente"){s3.import s}
   end
 end
 
@@ -178,12 +204,11 @@ module SudokuTest
   include GeneratorTest
 end
 
-class S3Test < Test::Unit::TestCase
+class S3Test < MyTestCase
   include SudokuTest
   
   def base; 3; end
   def klass; Sudoku::S3; end
-  def create; klass.new; end
   
   def test_square
     s = create.make_diagonal
@@ -214,7 +239,7 @@ class S3Test < Test::Unit::TestCase
   end
 end
 
-class S4_15Test < Test::Unit::TestCase
+class S4_15Test < MyTestCase
   include SudokuTest
   
   def base; 4; end
@@ -225,7 +250,7 @@ class S4_15Test < Test::Unit::TestCase
   end
 end
 
-class SnTest < Test::Unit::TestCase
+class SnTest < MyTestCase
   include SudokuTest
   
   def base; 2; end
@@ -234,10 +259,12 @@ end
 
 class GlobalTest < Test::Unit::TestCase
   def test_autoclass
-    [S3Test, S4_15Test, SnTest].each do |g|
-      grid = g.new nil
-      assert_equal grid.klass, Sudoku[grid.base]
+    {Sudoku::S3 => 3, Sudoku::S4_15 => 4, Sudoku::Sn => 2}.each do |klass, base|
+      assert_equal klass, Sudoku[base], "Sudoku[#{base}] => #{klass}"
     end
+    
+    Sudoku[2..7] = GridTest
+    assert_equal GridTest, Sudoku[6], "Definition d'autoclasses persos"
   end
   
   def test_speed

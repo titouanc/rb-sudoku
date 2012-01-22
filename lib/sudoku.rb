@@ -91,6 +91,7 @@ module Sudoku
     end
   end
   
+  #Adaptateurs de base
   ADAPTERS = [
     [3, S3],
     [4..15, S4_15],
@@ -100,8 +101,9 @@ module Sudoku
   class << self
     #Renvoie la classe de la première implémentation dont la zone comprend n
     # @param [Fixnum] n La base du sudoku
-    # @return [Class]
-    def [] n
+    # @return [Class] La première classe dont la zone comprend n, ou la première classe
+    #                 donc la zone est 0 (zone par défaut)
+    def best_class_for n
       n = n.to_i
       ADAPTERS.each do |ad|
         zone    = ad[0]
@@ -115,20 +117,22 @@ module Sudoku
         end
       end
     end
+    alias :[] :best_class_for
     
     #Ajoute un adapteur pour la zone definie. 
     # @param [Range, Fixnum] zone La zone de validité de l'adapteur
     # @param [Class] adapter L'adaptateur à ajouter
-    def []= zone, adapter
+    def define_class_for zone, adapter
       ADAPTERS.unshift [zone, adapter]
     end
+    alias :[]= :define_class_for
     
     #Renvoie une instance de la meilleure implémentation pour un sudoku de base n
     # @param [Fixnum] n La base du sudoku
     # @return [Grid]
     def best_grid_for n=3
       n = n.to_i
-      self[n].new n
+      best_class_for(n).new n
     end
     alias :new :best_grid_for
     
@@ -141,7 +145,7 @@ module Sudoku
       end
 
       base = $1.to_i
-      return new(base).load(str)
+      return best_grid_for(base).load(str)
     end
   end
 end

@@ -4,7 +4,7 @@ begin
   require 'rake/extensiontask'
 rescue LoadError => e
   sh "gem install rake-compiler"
-  require 'rake/extensiontask'
+  exec %{rake "#{ARGV*'" "'}"}
 end
 require 'rake/testtask.rb'
 require './lib/sudoku/version'
