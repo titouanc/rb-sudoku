@@ -235,7 +235,7 @@ module Sudoku
       unless size == other.size
         raise NotCompatibleError, "Cannot import a #{other.base} sudoku in a #{base} sudoku"
       end
-      other.each{|x,y,v| set x,y,v}
+      other.each{|x,y,v| set x, y, v}
       self
     end
   end

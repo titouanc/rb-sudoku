@@ -139,7 +139,7 @@ module GridTest
 
   def test_import
     s  = create.make_valid
-    s2 = Sudoku::Sn.new(s.size)
+    s2 = Sudoku::Sn.new(s.base).import s
     s2.each do |x,y,v|
       assert_equal s.get(x,y), v, "Importation d'une grille vers grille generique, cellules egales"
     end
@@ -190,11 +190,10 @@ module SolverTest
     assert s.complete?
   end
 
-  def test_solve_backtrack
+  def test_solve_backtrack_timeout
     s = create.make_valid_incomplete
-    t = Thread.new(s){|sudoku| sudoku.solve_backtrack!}
-    t.join SOLVER_TIMEOUT
-    assert s.complete?, "Toujours une solution en backtracking en max. #{SOLVER_TIMEOUT}s"
+    s2 = s.solve_backtrack_timeout(SOLVER_TIMEOUT)
+    assert s2.complete?, "Toujours une solution en backtracking en max. #{SOLVER_TIMEOUT}s"
   end
 end
 

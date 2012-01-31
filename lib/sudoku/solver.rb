@@ -138,11 +138,11 @@ module Sudoku
       res
     end
     
-    #Resoud le sudoku par backtracking
-    # @return (Fixnum) le nombre de nombres ajoutés dans la grille
+    # Resoud le sudoku par backtracking
+    # @return [Fixnum] le nombre de nombres ajoutés dans la grille
     def solve_backtrack!
       res = solve_naive!
-      
+            
       each do |x, y, cur_val|
         next unless cur_val.zero?
         p = possibilities x, y
@@ -157,6 +157,16 @@ module Sudoku
         end
       end
       
+      res
+    end
+    
+    # Renvoie un nouveau sudoku reolu par backtracking
+    # Si le temps de solution depasse timeout, le solveur est arrete
+    # @param [Fixnum] timeout Le temps maximum en secondes
+    # @return [Sudoku::Grid] Le sudoku resolu, ou en partie resolu si le timeout a joue
+    def solve_backtrack_timeout timeout
+      res = self.clone
+      Thread.new(res){|s| s.solve_backtrack!}.join(timeout)
       res
     end
     
